@@ -1,2 +1,3 @@
 # geth-helm
-A helm chart to run geth on kubernetes
+
+A helm chart to run a geth ethereum node on kubernetes.
