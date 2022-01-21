@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "geth.fullname" . }}
+  labels:
+    {{- include "geth.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "geth.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  serviceName: {{ include "geth.fullname" . }}
+  replicas: {{ .Values.replicaCount | default 1 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "geth.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: geth
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        command: ["geth"]
+        args:
+        - --syncmode=light
+        - --ropsten
+        - --http
+        - --http.corsdomain=*
+        - --http.vhosts=*
+        - --http.addr=0.0.0.0
+        - --cache=1024
+        ports:
+        - name: rpc
+          containerPort: {{ .Values.service.port }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: rpc
+        readinessProbe:
+          httpGet:
+            path: /
+            port: rpc
+        volumeMounts:
+        - name: data
+          mountPath: /root/.ethereum
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app: {{ template "geth.name" . }}
+        release: "{{ .Release.Name }}"
+    spec:
+      storageClassName: longhorn
+      accessModes:
+        - "ReadWriteOnce"
+      resources:
+          requests:
+            storage: "250Gi"
+
