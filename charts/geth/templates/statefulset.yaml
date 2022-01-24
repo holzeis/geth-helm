@@ -36,6 +36,7 @@ spec:
         - --http
         - --http.corsdomain=*
         - --http.vhosts=*
+        - --http.api=web3,eth,txpool,personal,ethash,net,les,vflux
         - --http.addr=0.0.0.0
         - --cache=1024
         ports:
